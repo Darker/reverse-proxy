@@ -54,20 +54,21 @@ class ProxyServerUDP_socketio {
         this.client.on("error", () => {
             console.error("[UDP_socketio] Socket IO connection error.")
         });
-        /** @type {{socket:dgram.Socket,client: number}[]} **/
+        /** @type {{socket:dgram.Socket,client: number, local_id: number}[]} **/
         this.ioClients = [];
         this.client.on("udp_message",
             /** @param {UDPResponseMessage} info where on the internet did it come from, important for sending a response **/
             (info) => {
                 let client = this.ioClients.find((entry) => {
-                    return entry.client == entry.client;
+                    return info.client == entry.client && info.local_id == entry.local_id
                 });
                 if (client == null) {
                     console.log("[UDP_socketio] Creating new UDP client!");
 
                     client = {
                         socket: dgram.createSocket('udp4'),
-                        client: info.client
+                        client: info.client,
+                        local_id: info.local_id
                     };
                     //client.socket.on('listening', function () {
                     //    var address = server.address();
@@ -75,7 +76,7 @@ class ProxyServerUDP_socketio {
                     //});
                     client.socket.on("message", (data, info) => {
                         //console.log("[UDP_socketio] UDP message received originally from ", info," - ",data.byteLength, " bytes");
-                        this.client.emit("udp_message", { datagram: data, client: client.client, target: {ip:client.ip, family:client.family, port:client.port} });
+                        this.client.emit("udp_message", { datagram: data, client: client.client, local_id: client.local_id });
                     });
 
                     this.ioClients.push(client);

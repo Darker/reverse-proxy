@@ -14,7 +14,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d436ed0d-45e1-45d1-bc61-b7358ed99836</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>AVP2\AVP2test.js</StartupFile>
+    <StartupFile>AVP2\user_friendly\StartServer.js</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -44,6 +44,12 @@
     <Compile Include="AVP2\ProxyControllerAVP2.js">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="AVP2\user_friendly\StartClient.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AVP2\user_friendly\StartServer.js">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="generic\IPSpoofExample.js">
       <SubType>Code</SubType>
     </Compile>
@@ -51,6 +57,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="generic\IPV4Packet.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="generic\ReadlineAsync.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="generic\UDPPacket.js">
@@ -96,6 +105,7 @@
     <Content Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="AVP2\user_friendly\" />
     <Folder Include="local\" />
     <Folder Include="generic\" />
     <Folder Include="AVP2\" />

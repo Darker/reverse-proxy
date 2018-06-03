@@ -10,23 +10,23 @@ function AddressInfoComparator(otherInfo) {
     return otherInfo.address == this.address
         && otherInfo.family == this.family
         && otherInfo.port == this.port;
-
 }
 
+/** @typedef {{addr: dgram.AddressInfo, last: number, local_id: number}} SavedClient */
 
 class AVP2ClientProxy {
     constructor(remoteAddr, remoteServerId, remotePort = 80, localPort = 27888) {
         this.localPort = localPort;
         this.remotePort = remotePort;
         this.remoteAddr = remoteAddr;
-
-
-
+        
         this.remoteServerId = remoteServerId;
+
+        this.localClientId = 0;
 
         this.receiverSocket = dgram.createSocket("udp4");
         this.receiverSocket.on("message", (msg, addr) => {
-            console.log("[AVP2ClientProxy] Message from ", addr);
+            //console.log("[AVP2ClientProxy] Message from ", addr);
             const msgstr = msg.byteLength < 10 ? msg.toString("utf8") : "";
 
             //if (!this.clients.find(AddressInfoComparator.bind(addr))) {
@@ -46,12 +46,30 @@ class AVP2ClientProxy {
                 }
             }
             else {
-                console.log("[AVP2ClientProxy] Redirecting UDP message (" + msg.byteLength + " bytes)");
-                this.client.emit("udp_message", { datagram: msg });
+                // console.log("[AVP2ClientProxy] Redirecting UDP message (" + msg.byteLength + " bytes)");
+                /** @type {SavedClient} **/
+                let client = null;
+                for (let i = 0, l = this.clients.length; i < l; ++i) {
+                    if (AddressInfoComparator.call(addr, this.clients[i].addr)) {
+                        client = this.clients[i];
+                        break;
+                    }
+                }
+                if (!client) {
+                    client = {
+                        addr: addr,
+                        last: new Date().getTime(),
+                        local_id: ++this.localClientId
+                    }
+                    this.clients.push(client);
+                    console.log("[AVP2ClientProxy] Created new client, #" + client.local_id);
+                }
+
+                this.client.emit("udp_message", { datagram: msg, local_id: client.local_id });
             }
         });
         this.receiverSocket.bind(localPort);
-        /** @type {dgram.AddressInfo[]} **/
+        /** @type {SavedClient[]} **/
         this.clients = [];
 
         // An array of addresses where should be the next server info sent
@@ -74,7 +92,10 @@ class AVP2ClientProxy {
             //console.log("[AVP2ClientProxy] Received datagram: ", info.datagram.byteLength,"bytes");
             for (let i = 0, l = this.clients.length; i < l; ++i) {
                 const item = this.clients[i];
-                this.receiverSocket.send(info.datagram, 0, info.datagram.byteLength, item.port, item.address);
+                if (info.local_id == item.local_id) {
+                    this.receiverSocket.send(info.datagram, 0, info.datagram.byteLength, item.addr.port, item.addr.address);
+                    break;
+                }
             }
         });
         this.client.on("serverinfo", (info) => {

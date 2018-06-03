@@ -31,7 +31,7 @@ class ProxyControllerUDP_socketio extends ProxyController {
                 });
                 if (client) {
                     //console.log("[REMOTE][UDP] Sending datagram to client #", client.id, " - ", info.datagram.byteLength);
-                    client.socket.emit("udp_message", {datagram: info.datagram})
+                    client.socket.emit("udp_message", {datagram: info.datagram, local_id: info.local_id})
                 }
             });
     }
@@ -46,7 +46,7 @@ class ProxyControllerUDP_socketio extends ProxyController {
             iosocket.on("udp_message",
                 /** @param {UDPResponseMessage} info **/
                 (info) => {
-                    this.client.emit("udp_message", { datagram: info.datagram, client: this_client.id })
+                    this.client.emit("udp_message", { datagram: info.datagram, client: this_client.id, local_id: info.local_id })
                 }
             );
             iosocket.on("close", () => {
