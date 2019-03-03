@@ -54,6 +54,10 @@ class ProxyServerUDP_socketio {
         this.client.on("error", () => {
             console.error("[UDP_socketio] Socket IO connection error.")
         });
+        this.client.on("proxy-error", (error) => {
+            console.error("[UDP_socketio] Remote server reported error: ", error.msg);
+            this.client.disconnect();
+        });
         /** @type {{socket:dgram.Socket,client: number, local_id: number}[]} **/
         this.ioClients = [];
         this.client.on("udp_message",

@@ -8,7 +8,7 @@ readline.createInterface = function () {
 
     var oldQuestion = iface.question;
     iface.question = function (question) {
-        console.log("QUESTION: " + question);
+        //console.log("QUESTION: " + question);
         return new Promise(function (resolve, reject) {
             try {
                 oldQuestion.call(iface, question, (result) => {

@@ -95,18 +95,20 @@ class ManagementServer {
                     server = this.proxies[identInfo.port];
                 }
                 else if (identInfo.serverId) {
-                    server = this.ioproxies.find((proxy) => {
-                        return proxy.serverId = identInfo.serverId;
-                    });
+                    server = this.findIoProxy(identInfo.serverId);
                 }
                 if (server) {
-                    server.addDataLayer(socket, identInfo.dataLayer);
+                    let error = server.addDataLayer(socket, identInfo.dataLayer);
+                    if (error === true ) {
+                        socket.emit("info", { msg: "Connected OK to " + server.port + " " + server.serverId });
+                    } else {
+                        this.disconnectWithError(socket, "Server refused connection, message:" + error);
+                    }
                 }
                 else {
                     console.log("[ManagementServer] Invalid data layer!");
-                    socket.emit("proxy-error", { msg: "Invalid data layer identification." });
+                    this.disconnectWithError(socket, "Invalid data layer identification: server not found");
                 }
-
             } else {
                 const server = typeof identInfo.protocol == "string" ?
                     new servers[identInfo.protocol](socket, identInfo.port)
@@ -115,6 +117,11 @@ class ManagementServer {
                 if (identInfo.port == "io") {
                     if (identInfo.serverId) {
                         server.serverId = identInfo.serverId;
+                        if (this.findIoProxy(identInfo.serverId)) {
+                            console.warn("[ManagementServer] WARN: server ", server.serverId, " already exists!");
+                            server.destroy();
+                            return;
+                        }
                     }
                     else
                         server.serverId = this.ioproxyCounter++;
@@ -122,9 +129,10 @@ class ManagementServer {
 
                     this.ioproxies.push(server);
                 }
-                else 
+                else {
                     this.proxies[identInfo.port] = server;
-                console.log("[ManagementServer] Local server registered on port ", identInfo.port, " with driver: " + server.constructor.name);
+                    console.log("[ManagementServer] Local server registered on port ", identInfo.port, " with driver: " + server.constructor.name);
+                }
             }
         }, 1000);
     }
@@ -142,6 +150,56 @@ class ManagementServer {
         else {
             socket.close();
         }
+    }
+    removeIOClient() {
+
+    }
+    /**
+     * 
+     * @param {ProxyController|ClientSocket} client
+     * @param {string} error
+     */
+    disconnectWithError(client, error) {
+        if (client instanceof ProxyController) {
+
+        }
+        else {
+            client.emit("proxy-error", { msg: error });
+            setTimeout(() => {
+                client.socket.disconnect();
+            },500)
+            
+        }
+    }
+    /**
+     * 
+     * @param {ProxyController} server
+     */
+    removeServer(server) {
+        if (server.port == "io") {
+            console.log("[ManagementServer] Removing server ", server.serverId);
+            const index = this.ioproxies.findIndex((proxy) => {
+                return proxy == server;
+            });
+            if (index >= 0) {
+                this.ioproxies.splice(index, 1);
+            }
+        }
+        else {
+            console.log("[ManagementServer] Removing server on port ", server.port);
+            delete this.proxies[server.port];
+        }
+        server.destroy();
+    }
+    /**
+     * 
+     * @param {string} serverId
+     * @returns {ProxyController}
+     */
+    findIoProxy(serverId) {
+        return this.ioproxies.find((proxy) => {
+            return proxy.serverId == serverId;
+        });
     }
 }
 module.exports = ManagementServer;

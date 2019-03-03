@@ -6,39 +6,158 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+const fs = require("fs");
+
+const ProxySettings = require("../../generic/settings/ProxySettings");
+
+const SETTING_DEFS = new ProxySettings.Settings(
+    [
+        new ProxySettings.Setting(
+            "IP",
+            null,
+            new ProxySettings.Description("Remote IP: You will need IP of the public proxy server.", "Enter the IP")
+        ),
+        new ProxySettings.Setting(
+            "REMOTE_PORT",
+            80,
+            new ProxySettings.Description("Remote port: The public proxy server typically listens on\n"
+                + "port 80, standard port for webpages. Enter the port", "Enter the port")
+        ),
+        new ProxySettings.Setting(
+            "SRVNAME",
+            null,
+            new ProxySettings.Description("Server name: Remote proxy server can host multiple servers.", "Enter a name for your server")
+        ),
+        new ProxySettings.Setting(
+            "LOCAL_PORT",
+            27888,
+            new ProxySettings.Description("Enter a port that your game server listens on.\n"
+                + "By default, that port is 27888. Check your config file\n"
+                + "in ServerData directory to see what port is set.", "Local port")
+        ),
+        new ProxySettings.Setting(
+            "LOCAL_IP",
+            "127.0.0.1",
+            new ProxySettings.Description("Enter local server's IP. If it's running on\n"
+                + "this computer, just press enter.\n", "Local IP")
+        ),
+    ]
+);
 
 console.log("This file is used for the server. That means\n"
     + "you are running a server on your LAN - or ideally this PC,\n"
     + "and you want to share it over the internet.");
 
-
+const SETTINGS_FILE = "StartServer.js.settings.json";
+const EXISTING_SETTINGS_PROMISE = new Promise(function (resolve, reject) {
+    fs.readFile(SETTINGS_FILE, "utf8", function (err, data) {
+        if (err) {
+            resolve(null);
+        }
+        else {
+            try {
+                resolve(JSON.parse(data));
+            }
+            catch (e) {
+                resolve(null);
+            }
+        }
+    });
+});
 
 (async () => {
     try {
-        if (await rl.chose("Is that what you want to do?")) {
+        let settings = null;
+        let loadedFromSettings = false;
+        if (process.argv.length > 3) {
+            const src = new ProxySettings.ValueSourceArgv();
+            try {
+                settings = await SETTING_DEFS.getValues(src);
+                loadedFromSettings = true;
+            } catch (e) {
+                console.log("\n");
+                src.printUsage(SETTING_DEFS);
+                rl.close();
+                return;
+            }
+        }
 
-            console.log("You will need IP of the public proxy server.");
-            const IP = await rl.question("Enter the IP:");
-            console.log("The public proxy server typically listens on\n"
-                + "port 80, standard port for webpages. Enter the port\n"
-                + "or just press enter to use the port 80");
+        if (loadedFromSettings || await rl.chose("Is that what you want to do?")) {
 
-            const PORT = await rl.question("Enter the port (default 80):") || 80;
-            const SRVNAME = await rl.question("Enter a name for your server:");
-            console.log("Enter a port that your game server listens on.\n"
-                + "By default, that port is 27888. Check your config file\n"
-                + "in ServerData directory to see what port is set.");
-            const LOCAL_PORT = await rl.question("Local port (default 27888):") || 27888;
-            console.log("Enter local server's IP. If it's running on\n"
-                + "this computer, just press enter.\n");
-            const LOCAL_IP = await rl.question("Local IP (default 127.0.0.1):") || "127.0.0.1";
+            if (!loadedFromSettings) {
+                try {
+                    const existing = await EXISTING_SETTINGS_PROMISE;
+                    if (existing) {
+                        const names = [];
+                        for (var name in existing) {
+                            if (typeof existing[name] == "object") {
+                                names.push(name);
+                            }
+                        }
+                        if (names.length > 0) {
+                            const longestNameLen = names.reduce((prev, cur) => {
+                                return prev.length > cur.length ? prev : cur;
+                            }).length;
+                            const max_column = 80;
+                            const values_per_col = max_column / (longestNameLen + 3);
+                            let table = "";
+                            for (let i = 0, l = names.length; i < l; ++i) {
+                                const name = names[i];
+                                table += name;
+                                let len = name.length;
+                                while (len < longestNameLen) {
+                                    table += " ";
+                                    len++;
+                                }
+                                if ((i + 1) % values_per_col == 0) {
+                                    table += "\n";
+                                }
+                            }
+                            console.log("You have some saved configurations.\nDo you want to load one of them?");
+                            console.log(table);
+                            const selectedName = await rl.question("Enter a name to load config,\nor just press enter to skip:");
+                            if (typeof existing[selectedName] == "object") {
+                                settings = existing[selectedName];
+                                loadedFromSettings = true;
+                            }
+
+                        }
+                    }
+                }
+                catch (e) { console.log("Error loading saved settings: " + e.message); };
+            }
+
+
+            if(settings == null)
+                settings = await SETTING_DEFS.getValues(new ProxySettings.ValueSourceReadline(rl));
 
             console.log("To sum up: \n"
-                + "Connecting to server " + IP + ":" + PORT + "\n"
-                + "Local server: " + LOCAL_IP+":" + LOCAL_PORT + "\n"
-                + "The remoter server name: " + SRVNAME
-            )
-            const server = new ProxyServerAVP2({ remotePort: PORT, appPort: LOCAL_PORT, remoteAddr: IP, appAddr: LOCAL_IP, serverId: SRVNAME });
+                + "Connecting to server " + settings.IP + ":" + settings.REMOTE_PORT + "\n"
+                + "Local server: " + settings.LOCAL_IP + ":" + settings.LOCAL_PORT + "\n"
+                + "The remoter server name: " + settings.SRVNAME
+            );
+
+            if (!loadedFromSettings) {
+                const saveName = await rl.question("\nIf you want to save these settings,\n enter a name. Otherwise just press enter:");
+                if (saveName) {
+                    let existing = null;
+                    try {
+                        existing = await EXISTING_SETTINGS_PROMISE;
+                    }
+                    catch (e) { };
+                    if (typeof existing != "object" || existing == null)
+                        existing = {};
+                    existing[saveName] = settings;
+                    fs.writeFile(SETTINGS_FILE, JSON.stringify(existing, null, 2));
+                }
+            }
+            const server = new ProxyServerAVP2({
+                remotePort: settings.REMOTE_PORT,
+                appPort: settings.LOCAL_PORT,
+                remoteAddr: settings.IP,
+                appAddr: settings.LOCAL_IP,
+                serverId: settings.SRVNAME
+            });
             //new ProxyServerAVP2({ remotePort: process.env.PORT, appPort: 27888, remoteAddr: testIP, appAddr: testIP, serverId: "AVP2TEST" });
         }
     }

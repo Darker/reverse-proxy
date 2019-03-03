@@ -52,9 +52,10 @@ class ProxyControllerUDP_socketio extends ProxyController {
             iosocket.on("close", () => {
                 this.clients.splice(this.clients.indexOf(this_client), 1);
             });
+            return true;
         }
         else {
-            iosocket.close();
+            return "Invalid data layer identification!";
         }
     }
     /**
@@ -63,6 +64,16 @@ class ProxyControllerUDP_socketio extends ProxyController {
      */
     addIOClient(clientInfo) {
         this.clients.push(clientInfo);
+    }
+
+    destroy() {
+        if (!this.destroyed) {
+            super.destroy();
+            for (let i = 0, l = this.clients.length; i < l; ++i) {
+                const item = this.clients[i];
+                item.socket.disconnect();
+            }
+        }
     }
 }
 module.exports = ProxyControllerUDP_socketio;

@@ -60,6 +60,10 @@ class ProxyServerAVP2 extends ProxyServerUDP_socketio {
             let attempts = 0;
             const attemptInterval = setInterval(msgSender, 50);
         });
+        this.client.on("proxy-error", (err) => {
+            console.error("[LOCAL][AVP SERVER] Proxy server error: ", err.msg);
+            this.client.disconnect();
+        });
         this.lastServerInfo = 0;
     }
     sendIdentification() {

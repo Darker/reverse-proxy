@@ -14,7 +14,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d436ed0d-45e1-45d1-bc61-b7358ed99836</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>AVP2\user_friendly\StartServer.js</StartupFile>
+    <StartupFile>AVP2\AVP2test.js</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -50,6 +50,12 @@
     <Compile Include="AVP2\user_friendly\StartServer.js">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DKII\DKIIServerInfo.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DKII\ResponseTest.js">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="generic\IPSpoofExample.js">
       <SubType>Code</SubType>
     </Compile>
@@ -62,10 +68,16 @@
     <Compile Include="generic\ReadlineAsync.js">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="generic\settings\ProxySettings.js">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="generic\UDPPacket.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="generic\UDPProxyBidirectional.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="JediAcademy\ResponseTest.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="local\ProxyServer.js">
@@ -75,6 +87,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="local\ProxyServerUDP_socketio.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="local\ProxyServer_Gaming.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="remote\ClientSocket.js">
@@ -106,9 +121,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="AVP2\user_friendly\" />
+    <Folder Include="generic\settings\" />
     <Folder Include="local\" />
     <Folder Include="generic\" />
     <Folder Include="AVP2\" />
+    <Folder Include="DKII\" />
+    <Folder Include="JediAcademy\" />
     <Folder Include="remote\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->

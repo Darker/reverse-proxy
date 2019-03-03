@@ -85,8 +85,15 @@ class AVP2ClientProxy {
             this.sendIdentification();
         });
 
-        this.client.on("error", () => {
-            console.error("[AVP2ClientProxy] Socket IO connection error.");
+        this.client.on("error", (error) => {
+            console.error("[AVP2ClientProxy] Socket IO connection error. Server says:", error);
+            this.destroy();
+            process.exitCode = 2;
+        });
+        this.client.on("proxy-error", (error) => {
+            console.error("[AVP2ClientProxy] Server error:", error.msg);
+            this.destroy();
+            process.exitCode = 3;
         });
         this.client.on("udp_message", (info) => {
             //console.log("[AVP2ClientProxy] Received datagram: ", info.datagram.byteLength,"bytes");
@@ -118,6 +125,11 @@ class AVP2ClientProxy {
         const identify = { port: "io", protocol: "AVP2", dataLayer: "CLIENT", serverId: this.remoteServerId };
 
         this.client.emit("identify", identify);
+    }
+    destroy() {
+        this.client.disconnect();
+        this.client.removeAllListeners();
+        this.receiverSocket.close();
     }
 }
 module.exports = AVP2ClientProxy;
