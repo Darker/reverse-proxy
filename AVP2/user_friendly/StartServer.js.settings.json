@@ -1,7 +1,14 @@
 {
   "LOCAL_TEST": {
     "IP": "127.0.0.1",
-    "REMOTE_PORT": 80,
+    "REMOTE_PORT": 88,
+    "SRVNAME": "TEST",
+    "LOCAL_PORT": 27888,
+    "LOCAL_IP": "127.0.0.1"
+  } ,
+  "ANTENA": {
+    "IP": "antenaletna.cz",
+    "REMOTE_PORT": 88,
     "SRVNAME": "TEST",
     "LOCAL_PORT": 27888,
     "LOCAL_IP": "127.0.0.1"
