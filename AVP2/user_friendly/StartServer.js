@@ -6,7 +6,11 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+const tryReadFromJSON = require("../../generic/settings/tryReadFromJSON");
+
 const fs = require("fs");
+
+
 
 const ProxySettings = require("../../generic/settings/ProxySettings");
 
@@ -69,8 +73,9 @@ const EXISTING_SETTINGS_PROMISE = new Promise(function (resolve, reject) {
     try {
         let settings = null;
         let loadedFromSettings = false;
-        if (process.argv.length > 3) {
+        if (process.argv.length >= 3) {
             const src = new ProxySettings.ValueSourceArgv();
+            src.loadValues(SETTING_DEFS);
             try {
                 settings = await SETTING_DEFS.getValues(src);
                 loadedFromSettings = true;
@@ -85,57 +90,22 @@ const EXISTING_SETTINGS_PROMISE = new Promise(function (resolve, reject) {
         if (loadedFromSettings || await rl.chose("Is that what you want to do?")) {
 
             if (!loadedFromSettings) {
-                try {
-                    const existing = await EXISTING_SETTINGS_PROMISE;
-                    if (existing) {
-                        const names = [];
-                        for (var name in existing) {
-                            if (typeof existing[name] == "object") {
-                                names.push(name);
-                            }
-                        }
-                        if (names.length > 0) {
-                            const longestNameLen = names.reduce((prev, cur) => {
-                                return prev.length > cur.length ? prev : cur;
-                            }).length;
-                            const max_column = 80;
-                            const values_per_col = max_column / (longestNameLen + 3);
-                            let table = "";
-                            for (let i = 0, l = names.length; i < l; ++i) {
-                                const name = names[i];
-                                table += name;
-                                let len = name.length;
-                                while (len < longestNameLen) {
-                                    table += " ";
-                                    len++;
-                                }
-                                if ((i + 1) % values_per_col == 0) {
-                                    table += "\n";
-                                }
-                            }
-                            console.log("You have some saved configurations.\nDo you want to load one of them?");
-                            console.log(table);
-                            const selectedName = await rl.question("Enter a name to load config,\nor just press enter to skip:");
-                            if (typeof existing[selectedName] == "object") {
-                                settings = existing[selectedName];
-                                loadedFromSettings = true;
-                            }
-
-                        }
-                    }
+                settings = await tryReadFromJSON(EXISTING_SETTINGS_PROMISE, rl);
+                if (settings != null) {
+                    loadedFromSettings = true;
                 }
-                catch (e) { console.log("Error loading saved settings: " + e.message); };
             }
 
-
-            if(settings == null)
+            if (settings == null) {
                 settings = await SETTING_DEFS.getValues(new ProxySettings.ValueSourceReadline(rl));
+            }
 
             console.log("To sum up: \n"
                 + "Connecting to server " + settings.IP + ":" + settings.REMOTE_PORT + "\n"
                 + "Local server: " + settings.LOCAL_IP + ":" + settings.LOCAL_PORT + "\n"
-                + "The remoter server name: " + settings.SRVNAME
+                + "The remote server name: " + settings.SRVNAME
             );
+            console.log("You can also re-run this configuration using\n    node StartServer.js cser:" + SETTING_DEFS.serialize(settings));
 
             if (!loadedFromSettings) {
                 const saveName = await rl.question("\nIf you want to save these settings,\n enter a name. Otherwise just press enter:");
@@ -151,6 +121,9 @@ const EXISTING_SETTINGS_PROMISE = new Promise(function (resolve, reject) {
                     fs.writeFile(SETTINGS_FILE, JSON.stringify(existing, null, 2));
                 }
             }
+
+
+
             const server = new ProxyServerAVP2({
                 remotePort: settings.REMOTE_PORT,
                 appPort: settings.LOCAL_PORT,

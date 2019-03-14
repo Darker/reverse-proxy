@@ -28,6 +28,112 @@ class ProxySettings {
             }
         }
     }
+    hasDef(defName) {
+        return this.defs.find((def) => {
+            return def.name == defName;
+        }) != null;
+    }
+    /**
+     * Returns a definition or null
+     * @param {any} defName
+     */
+    getDef(defName) {
+        return this.defs.find((def) => {
+            return def.name == defName;
+        });
+    }
+
+    getDefaultValue(defName) {
+        const def = this.getDef(defName);
+        if (def) {
+            return def.defaultValue;
+        }
+        else {
+            return null;
+        }
+    }
+    
+    /**
+     * 
+     * @param {object} values
+     */
+    serialize(values) {
+        if (typeof values !== "object") {
+            values = {};
+        }
+        ///** @type {[string,any][]} **/
+        //const valuesList = Object.entries(values);
+
+        ///** @type {[string,string][]} **/
+        //const valuesArr = valuesList
+        //    .filter((n) => {
+        //        this.hasDef(n[0]);
+        //    })
+        //    .map((n) => {
+        //        return [n[0], n[1].toString()]
+        //    });
+        //valuesArr.sort((pairA, pairB) => {
+        //    return pairA[0].localeCompare(pairB[0]);
+        //});
+        //console.log("Sorted value pairs: " + valuesArr);
+
+        const valueNames = this.defs.map((def) => def.name);
+        valueNames.sort();
+
+        // build result
+        let result = "";
+        for (const name of valueNames) {
+            if (typeof values[name] !== "undefined" && values[name]!=null) {
+                const value = values[name].toString();
+                result += value.length;
+                result += ":";
+                result += value;
+            }
+            else {
+                result += "0:";
+            }
+        }
+        return result;
+    }
+    /**
+     * 
+     * @param {string} valuesString
+     * @returns {object} parsed values based on their names
+     * @throws error if serialized data is incomplete or required param is missing
+     */
+    deserialize(valuesString) {
+        const valueNames = this.defs.map((def) => def.name);
+        valueNames.sort();
+        const result = {};
+        let charOffset = 0;
+        for (const name of valueNames) {
+            if (charOffset >= valuesString.length) {
+                throw new Error("Serialized data incomplete!");
+            }
+
+            const nextColon = valuesString.indexOf(":", charOffset);
+            const numberLength = nextColon - charOffset;
+            const valueSize = 1 * valuesString.substr(charOffset, numberLength);
+            charOffset += numberLength;
+            // Also move to skip colon
+            charOffset += 1;
+            if (valueSize > 0) {
+                const value = valuesString.substr(charOffset, valueSize);
+                result[name] = value;
+            }
+            else {
+                const defaultValue = this.getDefaultValue(name);
+                if (defaultValue) {
+                    result[name] = defaultValue;
+                }
+                else {
+                    throw new Error("Required property " + name + " was not serialized!");
+                }
+            }
+            charOffset += valueSize;
+        }
+        return result;
+    }
 }
 class ProxySettingDescription {
     /**
@@ -48,8 +154,9 @@ class ProxySettingValueSource {
     /**
      * 
      * @param {ProxySetting} setting
+     * @param {Proxy}
      */
-    async getValue(setting) {
+    async getValue(setting, settings) {
         throw new Error("Pure virtual method call!");
     }
 }
@@ -79,21 +186,45 @@ class ProxySettingValueSourceReadline extends ProxySettingValueSource {
     }
 }
 class ProxySettingValueSourceArgv extends ProxySettingValueSource {
-
-    constructor() {
+    /**
+     * 
+     * @param {string[]} args
+     */
+    constructor(args) {
         super();
         // parse argv
-        const args = process.argv;
-        this.values = {};
-        for (let i = 2, l = args.length; (i+1) < l; i+=2) {
-            let name = args[i];
-            const value = args[i + 1];
+        args = args || process.argv;
+        this.args = args;
+        this.values = null;
 
-            if (name.startsWith("-")) {
-                name = name.substr(1);
+
+    }
+    /**
+     * 
+     * @param {ProxySettings} settings
+     */
+    loadValues(settings) {
+        if (this.values == null) {
+            if (this.args.length < 3) {
+                this.values = {};
             }
-            this.values[name] = value;
+            else if (this.args[2].startsWith("cser:")) {
+                this.values = settings.deserialize(this.args[2].substr(5));
+            }
+            else {
+                this.values = {};
+                for (let i = 2, l = this.args.length; (i + 1) < l; i += 2) {
+                    let name = this.args[i];
+                    const value = this.args[i + 1];
+
+                    if (name.startsWith("-")) {
+                        name = name.substr(1);
+                    }
+                    this.values[name] = value;
+                }
+            }
         }
+        return this.values;
     }
     /**
      * 
@@ -158,7 +289,7 @@ class ProxySetting {
     /**
      * Process (eg. parse) user input
      * @param {string} value
-     * @returns {SettingTypee}
+     * @returns {SettingType}
      */
     processValue(value) {
         return value;

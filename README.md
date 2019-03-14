@@ -6,6 +6,8 @@ Usage:
  - Install Node.js (https://nodejs.org/en/download/)
  - Unpack the zip
  - Open command line in the directory with the zip
-   ![screenshot]()
+   ![screenshot](https://raw.githubusercontent.com/Darker/reverse-proxy/master/help/open_console.png)
+ - type `npm install` to install project dependencies
+
  
 

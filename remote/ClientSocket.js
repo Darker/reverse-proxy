@@ -3,7 +3,7 @@
 class ClientSocket {
     /**
      * 
-     * @param {{on:function,removeListener:function}} socket
+     * @param {SocketIO.Socket} socket
      * @param {ManagementServer} server
      */
     constructor(socket, server) {
@@ -15,6 +15,9 @@ class ClientSocket {
     }
     emit() {
         return this.socket.emit.apply(this.socket, arguments);
+    }
+    disconnect() {
+        return this.socket.disconnect();
     }
     onceTimeout(eventName, handler, timeMsecs) {
         let timeout = -1;

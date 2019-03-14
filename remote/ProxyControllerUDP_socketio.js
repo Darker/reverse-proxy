@@ -12,7 +12,9 @@ const dgram = require("dgram");
  * @prop {Buffer} datagram message data
  * @prop {number} client numeric ID of either source or target
  */
-
+/**
+ * @typedef {import("./ClientSocket")} ClientSocket
+ * */
 
 class ProxyControllerUDP_socketio extends ProxyController {
     /**
@@ -21,7 +23,7 @@ class ProxyControllerUDP_socketio extends ProxyController {
      */
     constructor(client) {
         super(client, "io", "udp")
-        /** @type {{socket: client, id: number}[]} **/
+        /** @type {{socket: ClientSocket, id: number}[]} **/
         this.clients = [];
         this.client.on("udp_message",
             /** @param {UDPResponseMessage} info **/
@@ -35,6 +37,11 @@ class ProxyControllerUDP_socketio extends ProxyController {
                 }
             });
     }
+    /**
+     * 
+     * @param {ClientSocket} iosocket
+     * @param {string} identification
+     */
     addDataLayer(iosocket, identification) {
         if (identification == "CLIENT") {
             console.log("[REMOTE][UDP] Adding socket.io client");
